@@ -1,0 +1,165 @@
+*xcode-colors.txt*        Xcode syntax colors for Swift, layered on your theme
+
+==============================================================================
+CONTENTS                                                 *xcode-colors-contents*
+
+  1. Introduction ............................ |xcode-colors-introduction|
+  2. Requirements ............................ |xcode-colors-requirements|
+  3. Setup ................................... |xcode-colors-setup|
+  4. Configuration ........................... |xcode-colors-config|
+  5. Palette roles ........................... |xcode-colors-palette|
+  6. Functions ............................... |xcode-colors-functions|
+  7. Commands ................................ |xcode-colors-commands|
+  8. Health .................................. |xcode-colors-health|
+
+==============================================================================
+1. INTRODUCTION                                      *xcode-colors-introduction*
+
+xcode-colors.nvim brings Xcode's Swift editor colors to Neovim. It is NOT a
+full colorscheme: it only sets foreground colors for Swift, on top of whatever
+colorscheme you already run, so Swift matches Xcode while everything else keeps
+your theme.
+
+It works in two cooperating layers:
+
+  * Treesitter — the syntactic categories (keyword/string/number/...) and the
+    declaration-vs-reference cases it can tell apart from position alone. Works
+    with no extra setup.
+
+  * sourcekit-lsp semantic tokens — project-vs-framework origin and
+    declaration-vs-reference, which syntax alone cannot see. This layer is
+    optional (see |xcode-colors-config|) and refines the Treesitter colors.
+
+==============================================================================
+2. REQUIREMENTS                                      *xcode-colors-requirements*
+
+  * Neovim >= 0.11.
+  * The Swift Treesitter parser.
+  * sourcekit-lsp on `$PATH` — optional, only for the origin and reference
+    colors. Syntactic colors work without it.
+
+Run `:checkhealth xcode-colors` to verify. See |xcode-colors-health|.
+
+==============================================================================
+3. SETUP                                                    *xcode-colors-setup*
+
+xcode-colors requires calling `setup()`; nothing happens on load alone. >lua
+
+    require('xcode-colors').setup({
+      preset = 'xcode27-dark',
+    })
+<
+Colors are (re)applied automatically after any |ColorScheme| load, since that
+resets highlight groups.
+
+==============================================================================
+4. CONFIGURATION                                           *xcode-colors-config*
+
+Defaults: >lua
+
+    require('xcode-colors').setup({
+      -- Built-in palette preset used as the base.
+      preset = 'xcode27-dark',
+      -- Per-color overrides layered on the preset.
+      palette = {},
+      -- Enable the sourcekit-lsp semantic-token layer.
+      lsp = true,
+      -- LSP client name to treat as sourcekit (see :LspInfo).
+      sourcekit_client = 'sourcekit',
+    })
+<
+                                                          *xcode-colors.preset*
+`preset`                        string (default: "xcode27-dark")
+
+    One of the built-in presets:
+      "xcode27-dark", "xcode27-light", "xcode26-dark", "xcode26-light".
+
+                                                         *xcode-colors.palette*
+`palette`                       table (default: {})
+
+    Per-role hex-color overrides layered on top of the preset. Any subset of
+    the roles in |xcode-colors-palette| may be set, for example: >lua
+
+        palette = { keyword = '#ff82b3', string = '#ff8d7a' }
+<
+                                                             *xcode-colors.lsp*
+`lsp`                           boolean (default: true)
+
+    Enable the sourcekit-lsp semantic-token layer. When false, only the
+    Treesitter layer runs (e.g. no project-vs-framework distinction).
+
+                                                *xcode-colors.sourcekit_client*
+`sourcekit_client`              string (default: "sourcekit")
+
+    The LSP client name treated as sourcekit. Only change this if you register
+    sourcekit-lsp under a non-default client name; check `:LspInfo`.
+
+==============================================================================
+5. PALETTE ROLES                                          *xcode-colors-palette*
+
+Each role is settable via `palette`:
+
+    plain            Identifiers, params, punctuation, operators
+    comment          Comments and doc markup
+    keyword          Keywords, booleans, self/super
+    string           Strings, characters, regex
+    number           Numeric literals
+    preprocessor     #if, attributes (@available, @State, ...)
+    type_decl        Type declarations
+    member_decl      Member declarations (functions, properties, enum cases)
+    project_type     Type references defined in the current module
+    project_member   Member references defined in the current module
+    other_type       Type references from frameworks/stdlib
+    other_member     Member references from frameworks/stdlib
+
+The project-vs-other distinction requires the sourcekit-lsp layer; without it,
+types and members fall back to their "project" color.
+
+==============================================================================
+6. FUNCTIONS                                            *xcode-colors-functions*
+
+                                                    *xcode-colors.inspect()*
+require('xcode-colors').inspect()
+
+    Print the sourcekit semantic token(s) under the cursor and the role they
+    map to. Useful for tuning `palette` overrides or diagnosing why a symbol
+    got a given color. Requires sourcekit-lsp attached to the buffer.
+
+    Bind it to a command or key if you use it often, for example: >lua
+
+        vim.keymap.set('n', '<leader>xi', function()
+          require('xcode-colors').inspect()
+        end)
+<
+                                                *xcode-colors.set_preset()*
+require('xcode-colors').set_preset({name})
+
+    Switch the active preset (see |xcode-colors.preset|) at runtime, keeping
+    any `palette` overrides passed to |xcode-colors-setup|. An unknown {name}
+    is reported and left as a no-op. Requires setup() to have run.
+
+    Handy for reacting to |'background'| or a system light/dark change: >lua
+
+        vim.api.nvim_create_autocmd('OptionSet', {
+          pattern = 'background',
+          callback = function()
+            local bg = vim.o.background
+            require('xcode-colors').set_preset('xcode27-' .. bg)
+          end,
+        })
+<
+
+==============================================================================
+7. COMMANDS                                              *xcode-colors-commands*
+
+                                                       *:XcodeColorsPreset*
+:XcodeColorsPreset {name}
+    Switch the active preset, keeping any `palette` overrides.
+
+==============================================================================
+8. HEALTH                                                  *xcode-colors-health*
+
+                                                     *:checkhealth xcode-colors*
+Run `:checkhealth xcode-colors` to verify requirements.
+
+vim:tw=78:ts=8:noet:ft=help:norl:
